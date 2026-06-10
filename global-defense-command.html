@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Defense Command - Campus Ambassador Management Platform</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --neon: #00d4ff;
+    --neon2: #7b2fff;
+    --neon3: #00ff9d;
+    --amber: #ffb347;
+    --danger: #ff4757;
+    --bg0: #020c1b;
+    --bg1: #041428;
+    --bg2: #071e38;
+    --bg3: #0a2444;
+    --glass: rgba(0,212,255,0.05);
+    --glass2: rgba(0,212,255,0.08);
+    --border: rgba(0,212,255,0.2);
+    --border2: rgba(0,212,255,0.4);
+    --text: #c8e8ff;
+    --text2: #7ab3d4;
+    --text3: #3d6b8a;
+    --font-hud: 'Share Tech Mono', monospace;
+    --font-ui: 'Rajdhani', sans-serif;
+    --font-head: 'Orbitron', monospace;
+  }
+
+  body {
+    background: var(--bg0);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    overflow-x: hidden;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid bg */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* Corner brackets */
+  .corner-bracket {
+    position: fixed;
+    width: 40px; height: 40px;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .corner-bracket::before, .corner-bracket::after {
+    content: '';
+    position: absolute;
+    background: var(--neon);
+    box-shadow: 0 0 6px var(--neon);
+  }
+  .corner-bracket::before { width: 2px; height: 100%; }
+  .corner-bracket::after  { width: 100%; height: 2px; }
+  .cb-tl { top: 8px; left: 8px; }
+  .cb-tr { top: 8px; right: 8px; transform: scaleX(-1); }
+  .cb-bl { bottom: 8px; left: 8px; transform: scaleY(-1); }
+  .cb-br { bottom: 8px; right: 8px; transform: scale(-1); }
+
+  /* Layout */
+  .app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--bg1);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    padding: 20px 16px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-badge {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    border: 2px solid var(--neon);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--neon);
+    font-size: 18px;
+    box-shadow: 0 0 12px rgba(0,212,255,0.3), inset 0 0 8px rgba(0,212,255,0.1);
+  }
+  .logo-text {
+    font-family: var(--font-head);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--neon);
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .logo-sub {
+    font-family: var(--font-hud);
+    font-size: 8px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .agent-card {
+    margin: 12px;
+    padding: 12px;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .agent-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon), transparent);
+  }
+  .agent-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--neon);
+    background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 8px;
+    box-shadow: 0 0 10px rgba(0,212,255,0.3);
+  }
+  .agent-name { font-family: var(--font-head); font-size: 11px; font-weight: 700; color: var(--neon); }
+  .agent-rank { font-family: var(--font-hud); font-size: 9px; color: var(--text3); margin-bottom: 8px; }
+  .xp-bar-wrap { background: rgba(0,0,0,0.4); border-radius: 2px; height: 4px; margin: 4px 0; overflow: hidden; }
+  .xp-bar { height: 100%; background: linear-gradient(90deg, var(--neon), var(--neon2)); border-radius: 2px; width: 68%; box-shadow: 0 0 6px var(--neon); }
+  .xp-label { font-family: var(--font-hud); font-size: 8px; color: var(--text3); display: flex; justify-content: space-between; }
+
+  .coin-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .coin-icon { color: var(--amber); font-size: 14px; }
+  .coin-val { font-family: var(--font-head); font-size: 12px; color: var(--amber); }
+  .coin-label { font-size: 10px; color: var(--text3); }
+
+  .nav-section { padding: 10px 10px 4px; }
+  .nav-label { font-family: var(--font-hud); font-size: 9px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; padding: 0 6px; margin-bottom: 6px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+    position: relative;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--glass2); color: var(--text); }
+  .nav-item.active {
+    background: rgba(0,212,255,0.12);
+    color: var(--neon);
+    border-left: 2px solid var(--neon);
+  }
+  .nav-item.active .nav-icon { color: var(--neon); text-shadow: 0 0 8px var(--neon); }
+  .nav-icon { font-size: 16px; width: 18px; text-align: center; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 9px;
+    font-family: var(--font-hud);
+    padding: 1px 5px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+  }
+  .nav-badge.green { background: var(--neon3); color: #000; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-hud);
+    font-size: 9px;
+    color: var(--text3);
+  }
+  .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--neon3); box-shadow: 0 0 6px var(--neon3); margin-right: 4px; animation: pulse-dot 2s infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Main content */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  /* Top bar */
+  .topbar {
+    height: 52px;
+    background: var(--bg1);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .page-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--neon);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  .topbar-sep { flex: 1; }
+  .topbar-stat {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-hud);
+    font-size: 11px;
+    color: var(--text2);
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--glass);
+  }
+  .topbar-stat .val { color: var(--neon); font-weight: bold; }
+  .pulse-ring {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--neon3);
+    box-shadow: 0 0 8px var(--neon3);
+    animation: pulse-dot 1.5s infinite;
+  }
+
+  /* Content area */
+  .content { padding: 20px; flex: 1; overflow-y: auto; }
+
+  /* Panel */
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon), transparent);
+    opacity: 0.5;
+  }
+  .panel-head {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(0,0,0,0.2);
+  }
+  .panel-title { font-family: var(--font-head); font-size: 10px; font-weight: 700; color: var(--neon); letter-spacing: 2px; text-transform: uppercase; }
+  .panel-icon { font-size: 14px; color: var(--neon); }
+  .panel-body { padding: 16px; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border2); }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    opacity: 0.7;
+  }
+  .stat-card.blue::after { background: var(--neon); box-shadow: 0 0 8px var(--neon); }
+  .stat-card.purple::after { background: var(--neon2); box-shadow: 0 0 8px var(--neon2); }
+  .stat-card.green::after { background: var(--neon3); box-shadow: 0 0 8px var(--neon3); }
+  .stat-card.amber::after { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  .stat-icon { font-size: 22px; margin-bottom: 8px; }
+  .stat-val { font-family: var(--font-head); font-size: 26px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+  .stat-card.blue .stat-val { color: var(--neon); text-shadow: 0 0 10px rgba(0,212,255,0.5); }
+  .stat-card.purple .stat-val { color: var(--neon2); text-shadow: 0 0 10px rgba(123,47,255,0.5); }
+  .stat-card.green .stat-val { color: var(--neon3); text-shadow: 0 0 10px rgba(0,255,157,0.5); }
+  .stat-card.amber .stat-val { color: var(--amber); text-shadow: 0 0 10px rgba(255,179,71,0.5); }
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-hud); }
+  .stat-delta { font-family: var(--font-hud); font-size: 10px; color: var(--neon3); margin-top: 4px; }
+
+  /* Progress ring */
+  .ring-wrap { display: flex; align-items: center; gap: 16px; }
+  .ring-svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: rgba(0,212,255,0.1); stroke-width: 8; }
+  .ring-fg { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .ring-label { text-align: center; }
+  .ring-pct { font-family: var(--font-head); font-size: 22px; font-weight: 700; }
+  .ring-sub { font-family: var(--font-hud); font-size: 10px; color: var(--text3); }
+
+  /* Mission cards */
+  .mission-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mission-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .mission-card:hover { border-color: var(--neon); transform: translateY(-2px); }
+  .mission-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .mission-card.urgent::before { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .mission-card.active-m::before { background: var(--neon); box-shadow: 0 0 8px var(--neon); }
+  .mission-card.complete::before { background: var(--neon3); box-shadow: 0 0 8px var(--neon3); }
+  .mission-card.pending::before { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+  .mission-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .mission-name { font-family: var(--font-head); font-size: 11px; font-weight: 700; color: var(--text); line-height: 1.3; max-width: 200px; }
+  .mission-badge {
+    font-family: var(--font-hud); font-size: 9px; padding: 2px 7px; border-radius: 3px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .mission-badge.urgent { background: rgba(255,71,87,0.2); color: var(--danger); border: 1px solid rgba(255,71,87,0.4); }
+  .mission-badge.active-m { background: rgba(0,212,255,0.15); color: var(--neon); border: 1px solid var(--border); }
+  .mission-badge.complete { background: rgba(0,255,157,0.12); color: var(--neon3); border: 1px solid rgba(0,255,157,0.3); }
+  .mission-badge.pending { background: rgba(255,179,71,0.12); color: var(--amber); border: 1px solid rgba(255,179,71,0.3); }
+  .mission-desc { font-size: 12px; color: var(--text3); line-height: 1.5; margin-bottom: 10px; }
+  .mission-meta { display: flex; align-items: center; gap: 12px; }
+  .mission-meta-item { display: flex; align-items: center; gap: 4px; font-family: var(--font-hud); font-size: 10px; color: var(--text3); }
+  .mission-coin { color: var(--amber); }
+  .mission-xp { color: var(--neon2); }
+  .mission-time { color: var(--text3); }
+
+  .prog-wrap { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+  .prog-fill { height: 100%; border-radius: 2px; box-shadow: 0 0 4px currentColor; }
+
+  /* Leaderboard */
+  .lb-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0,212,255,0.07);
+    cursor: pointer;
+    transition: background 0.1s;
+    border-radius: 4px;
+    padding: 8px 8px;
+  }
+  .lb-row:hover { background: var(--glass); }
+  .lb-rank { font-family: var(--font-head); font-size: 13px; font-weight: 900; width: 28px; text-align: center; }
+  .lb-rank.r1 { color: #ffd700; text-shadow: 0 0 10px #ffd700; }
+  .lb-rank.r2 { color: #c0c0c0; text-shadow: 0 0 8px #c0c0c0; }
+  .lb-rank.r3 { color: #cd7f32; text-shadow: 0 0 8px #cd7f32; }
+  .lb-rank.rn { color: var(--text3); }
+  .lb-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .lb-info { flex: 1; }
+  .lb-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .lb-college { font-family: var(--font-hud); font-size: 10px; color: var(--text3); }
+  .lb-score { font-family: var(--font-head); font-size: 13px; color: var(--neon); }
+  .lb-bar-wrap { width: 80px; height: 4px; background: rgba(0,212,255,0.1); border-radius: 2px; overflow: hidden; }
+  .lb-bar { height: 100%; background: var(--neon); border-radius: 2px; }
+
+  /* Achievements */
+  .badge-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .badge-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .badge-card:hover { border-color: var(--neon2); transform: scale(1.02); }
+  .badge-card.locked { opacity: 0.4; filter: grayscale(1); }
+  .badge-icon { font-size: 28px; margin-bottom: 6px; }
+  .badge-name { font-family: var(--font-head); font-size: 9px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-pts { font-family: var(--font-hud); font-size: 9px; color: var(--neon2); margin-top: 3px; }
+
+  /* Marketplace */
+  .market-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .market-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .market-card:hover { border-color: var(--amber); }
+  .market-icon { font-size: 32px; margin-bottom: 8px; }
+  .market-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .market-desc { font-size: 11px; color: var(--text3); margin-bottom: 10px; line-height: 1.4; }
+  .market-price {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255,179,71,0.12);
+    border: 1px solid rgba(255,179,71,0.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: var(--font-head); font-size: 12px; color: var(--amber);
+  }
+
+  /* Notification */
+  .notif-item {
+    display: flex; gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid rgba(0,212,255,0.07);
+    cursor: pointer;
+    transition: background 0.1s;
+    border-radius: 6px;
+  }
+  .notif-item:hover { background: var(--glass); }
+  .notif-dot-wrap { padding-top: 4px; }
+  .notif-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .notif-dot.info { background: var(--neon); box-shadow: 0 0 6px var(--neon); }
+  .notif-dot.warn { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .notif-dot.success { background: var(--neon3); box-shadow: 0 0 6px var(--neon3); }
+  .notif-dot.alert { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .notif-text { font-size: 13px; color: var(--text); line-height: 1.4; margin-bottom: 3px; }
+  .notif-time { font-family: var(--font-hud); font-size: 10px; color: var(--text3); }
+
+  /* Analytics */
+  .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 100px; padding: 0 4px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar-fill {
+    width: 100%; border-radius: 3px 3px 0 0;
+    min-height: 4px;
+    transition: height 0.5s ease;
+  }
+  .bar-fill.blue { background: var(--neon); box-shadow: 0 0 6px rgba(0,212,255,0.4); }
+  .bar-fill.purple { background: var(--neon2); box-shadow: 0 0 6px rgba(123,47,255,0.4); }
+  .bar-label { font-family: var(--font-hud); font-size: 9px; color: var(--text3); }
+  .bar-val { font-family: var(--font-head); font-size: 10px; color: var(--text2); }
+
+  /* Referral */
+  .ref-code-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px dashed var(--border2);
+    border-radius: 8px;
+    padding: 14px 18px;
+    text-align: center;
+    margin: 12px 0;
+  }
+  .ref-code { font-family: var(--font-head); font-size: 22px; font-weight: 900; color: var(--neon3); letter-spacing: 4px; text-shadow: 0 0 14px var(--neon3); }
+  .ref-code-label { font-family: var(--font-hud); font-size: 10px; color: var(--text3); margin-top: 4px; letter-spacing: 2px; }
+
+  .recruit-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(0,212,255,0.07); }
+  .recruit-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .recruit-status.active { background: var(--neon3); box-shadow: 0 0 5px var(--neon3); }
+  .recruit-status.pending { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+  .recruit-name { flex: 1; font-size: 13px; color: var(--text); font-weight: 500; }
+  .recruit-college { font-family: var(--font-hud); font-size: 10px; color: var(--text3); }
+  .recruit-reward { font-family: var(--font-head); font-size: 11px; color: var(--amber); }
+
+  /* Profile */
+  .profile-header { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px; }
+  .profile-avatar-wrap { position: relative; }
+  .profile-avatar {
+    width: 80px; height: 80px; border-radius: 50%;
+    border: 3px solid var(--neon);
+    background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    box-shadow: 0 0 20px rgba(0,212,255,0.4);
+  }
+  .profile-rank-badge {
+    position: absolute; bottom: -2px; right: -2px;
+    background: var(--bg0);
+    border: 1px solid var(--amber);
+    border-radius: 50%;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: var(--amber);
+  }
+  .profile-info { flex: 1; }
+  .profile-name { font-family: var(--font-head); font-size: 18px; font-weight: 900; color: var(--text); margin-bottom: 4px; }
+  .profile-title { font-size: 13px; color: var(--neon); font-weight: 600; margin-bottom: 6px; }
+  .profile-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font-family: var(--font-hud); font-size: 10px; padding: 3px 8px; border: 1px solid var(--border); border-radius: 3px; color: var(--text2); background: var(--glass); }
+
+  /* Buttons */
+  .btn {
+    font-family: var(--font-ui);
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: var(--glass);
+    color: var(--neon);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: rgba(0,212,255,0.15); box-shadow: 0 0 10px rgba(0,212,255,0.2); }
+  .btn-primary { border-color: var(--neon); background: rgba(0,212,255,0.12); }
+  .btn-amber { border-color: var(--amber); color: var(--amber); background: rgba(255,179,71,0.1); }
+  .btn-amber:hover { background: rgba(255,179,71,0.2); }
+  .btn-danger { border-color: var(--danger); color: var(--danger); background: rgba(255,71,87,0.1); }
+  .btn-sm { padding: 5px 11px; font-size: 10px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; margin-bottom: 16px; background: var(--bg1); border-radius: 8px; padding: 3px; border: 1px solid var(--border); }
+  .tab { flex: 1; padding: 8px 10px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text3); letter-spacing: 0.5px; transition: all 0.15s; font-family: var(--font-ui); }
+  .tab.active { background: var(--bg3); color: var(--neon); border: 1px solid var(--border); }
+  .tab:hover:not(.active) { color: var(--text2); }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 14px 0; opacity: 0.5; }
+
+  /* Scroll area */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg0); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* Ticker */
+  .ticker-wrap { overflow: hidden; border-top: 1px solid var(--border); background: var(--bg1); }
+  .ticker { display: flex; gap: 40px; padding: 6px 16px; font-family: var(--font-hud); font-size: 10px; color: var(--text3); animation: ticker-scroll 30s linear infinite; white-space: nowrap; }
+  @keyframes ticker-scroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  .ticker-item { display: flex; align-items: center; gap: 6px; }
+  .ticker-up { color: var(--neon3); }
+  .ticker-dn { color: var(--danger); }
+
+  /* Grid layout for dashboard */
+  .dash-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .dash-grid-full { grid-column: 1/-1; }
+
+  /* Responsive */
+  @media(max-width: 900px) {
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .dash-grid { grid-template-columns: 1fr; }
+    .mission-grid { grid-template-columns: 1fr; }
+    .badge-grid { grid-template-columns: repeat(3,1fr); }
+    .market-grid { grid-template-columns: 1fr 1fr; }
+    .analytics-grid { grid-template-columns: 1fr; }
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .lb-row.you { background: rgba(0,212,255,0.07); border-radius: 8px; }
+
+  .activity-row { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(0,212,255,0.06); font-size: 12px; }
+  .activity-time { font-family: var(--font-hud); font-size: 10px; color: var(--text3); width: 70px; flex-shrink: 0; margin-top: 1px; }
+  .activity-text { color: var(--text2); line-height: 1.4; }
+  .activity-hl { color: var(--neon); font-weight: 600; }
+
+  .skill-row { margin-bottom: 10px; }
+  .skill-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .skill-pct { font-family: var(--font-hud); font-size: 10px; color: var(--neon); }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="corner-bracket cb-tl"></div>
+<div class="corner-bracket cb-tr"></div>
+<div class="corner-bracket cb-bl"></div>
+<div class="corner-bracket cb-br"></div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">
+        <div class="logo-icon">🛡️</div>
+        <div>
+          <div class="logo-text">Global<br>Defense</div>
+          <div class="logo-sub">CMD // v2.4.1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-avatar">🎖️</div>
+      <div class="agent-name">AXIOM-7</div>
+      <div class="agent-rank">CAPTAIN · TIER III OPERATIVE</div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <span class="tag">NIT Trichy</span>
+        <span class="tag">CSE '25</span>
+      </div>
+      <div class="xp-bar-wrap"><div class="xp-bar"></div></div>
+      <div class="xp-label"><span>XP 6,840</span><span>→ 10,000</span></div>
+      <div class="coin-row">
+        <span class="coin-icon">◈</span>
+        <span class="coin-val">2,450</span>
+        <span class="coin-label">Defense Coins</span>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Operations</div>
+      <div class="nav-item active" onclick="nav('dashboard')">
+        <span class="nav-icon">📊</span>
+        Command Center
+      </div>
+      <div class="nav-item" onclick="nav('missions')">
+        <span class="nav-icon">🎯</span>
+        Mission Center
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item" onclick="nav('leaderboard')">
+        <span class="nav-icon">🏆</span>
+        Leaderboard
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Intelligence</div>
+      <div class="nav-item" onclick="nav('analytics')">
+        <span class="nav-icon">📈</span>
+        Analytics
+      </div>
+      <div class="nav-item" onclick="nav('referral')">
+        <span class="nav-icon">👥</span>
+        Referral Ops
+        <span class="nav-badge green">12</span>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Rewards</div>
+      <div class="nav-item" onclick="nav('marketplace')">
+        <span class="nav-icon">🛍️</span>
+        Marketplace
+      </div>
+      <div class="nav-item" onclick="nav('achievements')">
+        <span class="nav-icon">🎖️</span>
+        Achievements
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Personal</div>
+      <div class="nav-item" onclick="nav('notifications')">
+        <span class="nav-icon">🔔</span>
+        Notifications
+        <span class="nav-badge">5</span>
+      </div>
+      <div class="nav-item" onclick="nav('profile')">
+        <span class="nav-icon">👤</span>
+        Agent Profile
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <span class="status-dot"></span>SYSTEM ONLINE · SESSION SECURE<br>
+      <span style="margin-top:4px;display:block">TECHFEST 2025 · ZONAL NODE: SOUTH</span>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- Topbar -->
+    <header class="topbar">
+      <span class="page-title" id="page-title">Command Center</span>
+      <div class="topbar-sep"></div>
+      <div class="topbar-stat"><span class="pulse-ring"></span><span class="val">LIVE</span>&nbsp;TECHFEST 2025</div>
+      <div class="topbar-stat">⏱ D-<span class="val">47</span>&nbsp;TO EVENT</div>
+      <div class="topbar-stat">🌐 <span class="val">1,284</span>&nbsp;AGENTS</div>
+      <button class="btn btn-sm btn-primary" onclick="nav('notifications')" style="cursor:pointer">🔔</button>
+    </header>
+
+    <!-- Ticker -->
+    <div class="ticker-wrap">
+      <div class="ticker">
+        <span class="ticker-item">🏆 <span class="ticker-up">Rahul K</span> completed MISSION SIGMA · +500 XP</span>
+        <span class="ticker-item">🎯 <span class="ticker-up">IIT Bombay</span> overtakes Delhi on National Board</span>
+        <span class="ticker-item">⚡ <span class="ticker-dn">48hrs</span> left for OPERATION NEXUS</span>
+        <span class="ticker-item">🎖️ <span class="ticker-up">Priya S</span> earned GOLD COMMANDER badge</span>
+        <span class="ticker-item">🔥 <span class="ticker-up">234 missions</span> completed today — new record</span>
+        <span class="ticker-item">📣 Registrations for TECHFEST 2025 cross <span class="ticker-up">10,000</span> mark</span>
+        <span class="ticker-item">🏆 <span class="ticker-up">Rahul K</span> completed MISSION SIGMA · +500 XP</span>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ===== DASHBOARD ===== -->
+      <div class="page active" id="page-dashboard">
+        <div class="stat-grid">
+          <div class="stat-card blue">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-val">18</div>
+            <div class="stat-label">Missions Done</div>
+            <div class="stat-delta">↑ +3 this week</div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-val">6,840</div>
+            <div class="stat-label">Total XP</div>
+            <div class="stat-delta">↑ +840 this week</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon">👥</div>
+            <div class="stat-val">12</div>
+            <div class="stat-label">Recruits</div>
+            <div class="stat-delta">↑ +2 today</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="stat-icon">◈</div>
+            <div class="stat-val">2,450</div>
+            <div class="stat-label">Defense Coins</div>
+            <div class="stat-delta">↑ +300 earned</div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-icon">🎯</span>
+                <span class="panel-title">Active Missions</span>
+                <div style="margin-left:auto"><button class="btn btn-sm" onclick="nav('missions')" style="cursor:pointer">View All ↗</button></div>
+              </div>
+              <div class="panel-body">
+                <div class="mission-grid">
+                  <div class="mission-card urgent">
+                    <div class="mission-head">
+                      <div class="mission-name">OPERATION NEXUS</div>
+                      <div class="mission-badge urgent">URGENT</div>
+                    </div>
+                    <div class="mission-desc">Register 50 students for TechFest 2025 through your referral link before the deadline.</div>
+                    <div class="mission-meta">
+                      <div class="mission-meta-item mission-coin">◈ 800</div>
+                      <div class="mission-meta-item mission-xp">⚡ 500 XP</div>
+                      <div class="mission-meta-item">⏱ 48h left</div>
+                    </div>
+                    <div class="prog-wrap"><div class="prog-fill" style="width:64%;background:var(--danger);color:var(--danger)"></div></div>
+                    <div style="font-family:var(--font-hud);font-size:9px;color:var(--text3);margin-top:4px">32/50 REGISTERED</div>
+                  </div>
+                  <div class="mission-card active-m">
+                    <div class="mission-head">
+                      <div class="mission-name">SOCIAL STRIKE</div>
+                      <div class="mission-badge active-m">IN PROGRESS</div>
+                    </div>
+                    <div class="mission-desc">Create and post 3 event promotion reels on Instagram with #TechFest2025.</div>
+                    <div class="mission-meta">
+                      <div class="mission-meta-item mission-coin">◈ 400</div>
+                      <div class="mission-meta-item mission-xp">⚡ 250 XP</div>
+                      <div class="mission-meta-item">⏱ 5d left</div>
+                    </div>
+                    <div class="prog-wrap"><div class="prog-fill" style="width:33%;background:var(--neon);color:var(--neon)"></div></div>
+                    <div style="font-family:var(--font-hud);font-size:9px;color:var(--text3);margin-top:4px">1/3 SUBMITTED</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-icon">📋</span>
+                <span class="panel-title">Activity Log</span>
+              </div>
+              <div class="panel-body" style="padding-top:8px">
+                <div class="activity-row">
+                  <div class="activity-time">10:42 AM</div>
+                  <div class="activity-text">Mission <span class="activity-hl">CAMPUS STORM</span> submitted for review · +250 XP pending</div>
+                </div>
+                <div class="activity-row">
+                  <div class="activity-time">09:15 AM</div>
+                  <div class="activity-text"><span class="activity-hl">Ananya P</span> joined via your referral link · +200 coins awarded</div>
+                </div>
+                <div class="activity-row">
+                  <div class="activity-time">Yesterday</div>
+                  <div class="activity-text">Badge <span class="activity-hl">EAGLE SCOUT</span> unlocked — 10 missions completed</div>
+                </div>
+                <div class="activity-row">
+                  <div class="activity-time">Yesterday</div>
+                  <div class="activity-text">Leaderboard rank changed: <span class="activity-hl">#47 → #39</span> nationally</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-icon">⭐</span>
+                <span class="panel-title">Rank Status</span>
+              </div>
+              <div class="panel-body">
+                <div style="text-align:center;margin-bottom:12px">
+                  <div style="font-family:var(--font-head);font-size:28px;font-weight:900;color:#ffd700;text-shadow:0 0 16px rgba(255,215,0,0.6)">#39</div>
+                  <div style="font-family:var(--font-hud);font-size:10px;color:var(--text3);margin-top:2px">NATIONAL RANK</div>
+                </div>
+                <div class="divider"></div>
+                <div style="display:flex;justify-content:space-between;text-align:center">
+                  <div>
+                    <div style="font-family:var(--font-head);font-size:16px;color:var(--neon2)">#12</div>
+                    <div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">COLLEGE</div>
+                  </div>
+                  <div>
+                    <div style="font-family:var(--font-head);font-size:16px;color:var(--neon3)">#4</div>
+                    <div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">REGIONAL</div>
+                  </div>
+                  <div>
+                    <div style="font-family:var(--font-head);font-size:16px;color:var(--amber)">#39</div>
+                    <div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">NATIONAL</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-icon">🏆</span>
+                <span class="panel-title">Top Agents</span>
+                <div style="margin-left:auto"><button class="btn btn-sm" onclick="nav('leaderboard')" style="cursor:pointer">Full Board ↗</button></div>
+              </div>
+              <div class="panel-body" style="padding-top:4px">
+                <div class="lb-row">
+                  <div class="lb-rank r1">1</div>
+                  <div class="lb-avatar">🦅</div>
+                  <div class="lb-info"><div class="lb-name">Aryan Shah</div><div class="lb-college">IIT Bombay</div></div>
+                  <div class="lb-score">14,220</div>
+                </div>
+                <div class="lb-row">
+                  <div class="lb-rank r2">2</div>
+                  <div class="lb-avatar">🐺</div>
+                  <div class="lb-info"><div class="lb-name">Priya Menon</div><div class="lb-college">NIT Calicut</div></div>
+                  <div class="lb-score">13,890</div>
+                </div>
+                <div class="lb-row">
+                  <div class="lb-rank r3">3</div>
+                  <div class="lb-avatar">🦁</div>
+                  <div class="lb-info"><div class="lb-name">Dev Malhotra</div><div class="lb-college">BITS Pilani</div></div>
+                  <div class="lb-score">12,640</div>
+                </div>
+                <div class="lb-row you">
+                  <div class="lb-rank rn">39</div>
+                  <div class="lb-avatar">🎖️</div>
+                  <div class="lb-info"><div class="lb-name">You (AXIOM-7)</div><div class="lb-college">NIT Trichy</div></div>
+                  <div class="lb-score" style="color:var(--amber)">6,840</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== MISSIONS ===== -->
+      <div class="page" id="page-missions">
+        <div class="tabs">
+          <div class="tab active" id="tab-available" onclick="switchTab('available')">Available</div>
+          <div class="tab" id="tab-active" onclick="switchTab('active')">Active (2)</div>
+          <div class="tab" id="tab-submitted" onclick="switchTab('submitted')">Submitted (3)</div>
+          <div class="tab" id="tab-completed" onclick="switchTab('completed')">Completed (18)</div>
+        </div>
+
+        <div class="mission-grid">
+          <div class="mission-card pending">
+            <div class="mission-head">
+              <div class="mission-name">OPERATION THUNDERCLAP</div>
+              <div class="mission-badge pending">AVAILABLE</div>
+            </div>
+            <div class="mission-desc">Organize a mini event at your campus with minimum 30 participants and submit a report with photos.</div>
+            <div class="mission-meta">
+              <div class="mission-meta-item mission-coin">◈ 1200</div>
+              <div class="mission-meta-item mission-xp">⚡ 750 XP</div>
+              <div class="mission-meta-item">⏱ 7d left</div>
+            </div>
+            <div style="margin-top:10px"><button class="btn btn-primary btn-sm" style="cursor:pointer">Accept Mission</button></div>
+          </div>
+          <div class="mission-card pending">
+            <div class="mission-head">
+              <div class="mission-name">INTEL SWEEP</div>
+              <div class="mission-badge pending">AVAILABLE</div>
+            </div>
+            <div class="mission-desc">Complete the TechFest quiz and share results on LinkedIn tagging @TechFest2025 with your ambassador code.</div>
+            <div class="mission-meta">
+              <div class="mission-meta-item mission-coin">◈ 350</div>
+              <div class="mission-meta-item mission-xp">⚡ 200 XP</div>
+              <div class="mission-meta-item">⏱ 10d left</div>
+            </div>
+            <div style="margin-top:10px"><button class="btn btn-primary btn-sm" style="cursor:pointer">Accept Mission</button></div>
+          </div>
+          <div class="mission-card urgent">
+            <div class="mission-head">
+              <div class="mission-name">OPERATION NEXUS</div>
+              <div class="mission-badge urgent">URGENT</div>
+            </div>
+            <div class="mission-desc">Register 50 students for TechFest 2025 through your personal referral link before the deadline expires.</div>
+            <div class="mission-meta">
+              <div class="mission-meta-item mission-coin">◈ 800</div>
+              <div class="mission-meta-item mission-xp">⚡ 500 XP</div>
+              <div class="mission-meta-item">⏱ 48h left</div>
+            </div>
+            <div class="prog-wrap"><div class="prog-fill" style="width:64%;background:var(--danger);color:var(--danger)"></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+              <span style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">32/50 REGISTERED</span>
+              <button class="btn btn-sm btn-danger" style="cursor:pointer">Submit Proof</button>
+            </div>
+          </div>
+          <div class="mission-card active-m">
+            <div class="mission-head">
+              <div class="mission-name">SOCIAL STRIKE</div>
+              <div class="mission-badge active-m">IN PROGRESS</div>
+            </div>
+            <div class="mission-desc">Create 3 promotional Instagram reels for TechFest 2025 using the official template kit provided.</div>
+            <div class="mission-meta">
+              <div class="mission-meta-item mission-coin">◈ 400</div>
+              <div class="mission-meta-item mission-xp">⚡ 250 XP</div>
+              <div class="mission-meta-item">⏱ 5d left</div>
+            </div>
+            <div class="prog-wrap"><div class="prog-fill" style="width:33%;background:var(--neon);color:var(--neon)"></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+              <span style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">1/3 REELS SUBMITTED</span>
+              <button class="btn btn-sm btn-primary" style="cursor:pointer">Submit Next</button>
+            </div>
+          </div>
+          <div class="mission-card complete">
+            <div class="mission-head">
+              <div class="mission-name">CAMPUS STORM</div>
+              <div class="mission-badge complete">COMPLETE</div>
+            </div>
+            <div class="mission-desc">Distributed flyers and talked to minimum 100 students about TechFest. Submitted photo proof.</div>
+            <div class="mission-meta">
+              <div class="mission-meta-item mission-coin">◈ 500</div>
+              <div class="mission-meta-item mission-xp">⚡ 300 XP</div>
+              <div class="mission-meta-item" style="color:var(--neon3)">✓ Verified</div>
+            </div>
+            <div class="prog-wrap"><div class="prog-fill" style="width:100%;background:var(--neon3);color:var(--neon3)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== LEADERBOARD ===== -->
+      <div class="page" id="page-leaderboard">
+        <div class="tabs">
+          <div class="tab active" id="tab-lb-national" onclick="switchLBTab('national')">National</div>
+          <div class="tab" id="tab-lb-college" onclick="switchLBTab('college')">College</div>
+          <div class="tab" id="tab-lb-regional" onclick="switchLBTab('regional')">Regional</div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-icon">🏆</span>
+              <span class="panel-title">National Rankings</span>
+              <div style="margin-left:auto;font-family:var(--font-hud);font-size:10px;color:var(--text3)">1,284 agents ranked</div>
+            </div>
+            <div class="panel-body" style="padding-top:4px">
+              <div class="lb-row">
+                <div class="lb-rank r1">1</div>
+                <div class="lb-avatar">🦅</div>
+                <div class="lb-info"><div class="lb-name">Aryan Shah</div><div class="lb-college">IIT Bombay</div></div>
+                <div style="flex:1"></div>
+                <div class="lb-bar-wrap"><div class="lb-bar" style="width:100%"></div></div>
+                <div class="lb-score" style="min-width:54px;text-align:right">14,220</div>
+              </div>
+              <div class="lb-row">
+                <div class="lb-rank r2">2</div>
+                <div class="lb-avatar">🐺</div>
+                <div class="lb-info"><div class="lb-name">Priya Menon</div><div class="lb-college">NIT Calicut</div></div>
+                <div style="flex:1"></div>
+                <div class="lb-bar-wrap"><div class="lb-bar" style="width:98%"></div></div>
+                <div class="lb-score" style="min-width:54px;text-align:right">13,890</div>
+              </div>
+              <div class="lb-row">
+                <div class="lb-rank r3">3</div>
+                <div class="lb-avatar">🦁</div>
+                <div class="lb-info"><div class="lb-name">Dev Malhotra</div><div class="lb-college">BITS Pilani</div></div>
+                <div style="flex:1"></div>
+                <div class="lb-bar-wrap"><div class="lb-bar" style="width:89%"></div></div>
+                <div class="lb-score" style="min-width:54px;text-align:right">12,640</div>
+              </div>
+              <div class="lb-row">
+                <div class="lb-rank rn">4</div>
+                <div class="lb-avatar">🦊</div>
+                <div class="lb-info"><div class="lb-name">Kavya Nair</div><div class="lb-college">VIT Vellore</div></div>
+                <div style="flex:1"></div>
+                <div class="lb-bar-wrap"><div class="lb-bar" style="width:82%"></div></div>
+                <div class="lb-score" style="min-width:54px;text-align:right">11,660</div>
+              </div>
+              <div class="lb-row">
+                <div class="lb-rank rn">5</div>
+                <div class="lb-avatar">🐯</div>
+                <div class="lb-info"><div class="lb-name">Rohan Gupta</div><div class="lb-college">IIT Delhi</div></div>
+                <div style="flex:1"></div>
+                <div class="lb-bar-wrap"><div class="lb-bar" style="width:76%"></div></div>
+                <div class="lb-score" style="min-width:54px;text-align:right">10,820</div>
+              </div>
+              <div style="text-align:center;padding:8px;font-family:var(--font-hud);font-size:10px;color:var(--text3)">· · · 33 more agents · · ·</div>
+              <div class="lb-row you">
+                <div class="lb-rank rn">39</div>
+                <div class="lb-avatar">🎖️</div>
+                <div class="lb-info"><div class="lb-name">You — AXIOM-7</div><div class="lb-college">NIT Trichy</div></div>
+                <div style="flex:1"></div>
+                <div class="lb-bar-wrap"><div class="lb-bar" style="width:48%;background:var(--amber)"></div></div>
+                <div class="lb-score" style="min-width:54px;text-align:right;color:var(--amber)">6,840</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-icon">🏛️</span>
+                <span class="panel-title">Top Colleges</span>
+              </div>
+              <div class="panel-body" style="padding-top:4px">
+                <div class="lb-row">
+                  <div class="lb-rank r1">1</div>
+                  <div class="lb-info"><div class="lb-name">IIT Bombay</div><div class="lb-college">42 agents</div></div>
+                </div>
+                <div class="lb-row">
+                  <div class="lb-rank r2">2</div>
+                  <div class="lb-info"><div class="lb-name">NIT Calicut</div><div class="lb-college">38 agents</div></div>
+                </div>
+                <div class="lb-row">
+                  <div class="lb-rank r3">3</div>
+                  <div class="lb-info"><div class="lb-name">BITS Pilani</div><div class="lb-college">35 agents</div></div>
+                </div>
+                <div class="lb-row">
+                  <div class="lb-rank rn">4</div>
+                  <div class="lb-info"><div class="lb-name">VIT Vellore</div><div class="lb-college">47 agents</div></div>
+                </div>
+                <div class="lb-row" style="background:rgba(255,179,71,0.07)">
+                  <div class="lb-rank rn">7</div>
+                  <div class="lb-info"><div class="lb-name" style="color:var(--amber)">NIT Trichy (You)</div><div class="lb-college">18 agents</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ANALYTICS ===== -->
+      <div class="page" id="page-analytics">
+        <div class="stat-grid" style="margin-bottom:20px">
+          <div class="stat-card blue"><div class="stat-val">94%</div><div class="stat-label">Mission Rate</div></div>
+          <div class="stat-card purple"><div class="stat-val">1.24k</div><div class="stat-label">People Reached</div></div>
+          <div class="stat-card green"><div class="stat-val">8.6</div><div class="stat-label">Avg Response (h)</div></div>
+          <div class="stat-card amber"><div class="stat-val">3.2x</div><div class="stat-label">Engagement Mult</div></div>
+        </div>
+        <div class="analytics-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-icon">📊</span>
+              <span class="panel-title">Weekly Mission Output</span>
+            </div>
+            <div class="panel-body">
+              <div class="bar-chart" style="height:120px">
+                <div class="bar-col"><div class="bar-val">2</div><div class="bar-fill blue" style="height:40px"></div><div class="bar-label">Mon</div></div>
+                <div class="bar-col"><div class="bar-val">4</div><div class="bar-fill blue" style="height:80px"></div><div class="bar-label">Tue</div></div>
+                <div class="bar-col"><div class="bar-val">3</div><div class="bar-fill blue" style="height:60px"></div><div class="bar-label">Wed</div></div>
+                <div class="bar-col"><div class="bar-val">5</div><div class="bar-fill purple" style="height:100px"></div><div class="bar-label">Thu</div></div>
+                <div class="bar-col"><div class="bar-val">4</div><div class="bar-fill blue" style="height:80px"></div><div class="bar-label">Fri</div></div>
+                <div class="bar-col"><div class="bar-val">6</div><div class="bar-fill purple" style="height:115px"></div><div class="bar-label">Sat</div></div>
+                <div class="bar-col"><div class="bar-val">2</div><div class="bar-fill blue" style="height:40px"></div><div class="bar-label">Sun</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-icon">📍</span>
+              <span class="panel-title">Outreach Performance</span>
+            </div>
+            <div class="panel-body">
+              <div class="skill-row">
+                <div class="skill-label"><span>Referrals</span><span class="skill-pct">78%</span></div>
+                <div class="xp-bar-wrap"><div class="prog-fill" style="width:78%;background:var(--neon);height:6px;border-radius:3px"></div></div>
+              </div>
+              <div class="skill-row">
+                <div class="skill-label"><span>Social Media</span><span class="skill-pct">65%</span></div>
+                <div class="xp-bar-wrap"><div class="prog-fill" style="width:65%;background:var(--neon2);height:6px;border-radius:3px"></div></div>
+              </div>
+              <div class="skill-row">
+                <div class="skill-label"><span>On-ground Events</span><span class="skill-pct">42%</span></div>
+                <div class="xp-bar-wrap"><div class="prog-fill" style="width:42%;background:var(--amber);height:6px;border-radius:3px"></div></div>
+              </div>
+              <div class="skill-row">
+                <div class="skill-label"><span>Content Creation</span><span class="skill-pct">71%</span></div>
+                <div class="xp-bar-wrap"><div class="prog-fill" style="width:71%;background:var(--neon3);height:6px;border-radius:3px"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== REFERRAL ===== -->
+      <div class="page" id="page-referral">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-icon">🔗</span>
+              <span class="panel-title">Your Referral Code</span>
+            </div>
+            <div class="panel-body">
+              <div class="ref-code-box">
+                <div class="ref-code">AXIOM-TF25</div>
+                <div class="ref-code-label">AMBASSADOR CODE · ACTIVE</div>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:14px">
+                <button class="btn btn-primary" style="flex:1;cursor:pointer">Copy Link</button>
+                <button class="btn btn-amber" style="flex:1;cursor:pointer">Share Now</button>
+              </div>
+              <div class="divider"></div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+                <div style="background:var(--glass);border:1px solid var(--border);border-radius:8px;padding:10px">
+                  <div style="font-family:var(--font-head);font-size:20px;color:var(--neon3)">12</div>
+                  <div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">RECRUITED</div>
+                </div>
+                <div style="background:var(--glass);border:1px solid var(--border);border-radius:8px;padding:10px">
+                  <div style="font-family:var(--font-head);font-size:20px;color:var(--neon)">8</div>
+                  <div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">REGISTERED</div>
+                </div>
+                <div style="background:var(--glass);border:1px solid var(--border);border-radius:8px;padding:10px">
+                  <div style="font-family:var(--font-head);font-size:20px;color:var(--amber)">2,400◈</div>
+                  <div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">EARNED</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-icon">👥</span>
+              <span class="panel-title">Recruited Agents</span>
+            </div>
+            <div class="panel-body" style="padding-top:4px">
+              <div class="recruit-row"><div class="recruit-status active"></div><div><div class="recruit-name">Ananya Priya</div><div class="recruit-college">NIT Trichy</div></div><div style="flex:1"></div><div class="recruit-reward">+200◈</div></div>
+              <div class="recruit-row"><div class="recruit-status active"></div><div><div class="recruit-name">Karthik Raj</div><div class="recruit-college">NIT Trichy</div></div><div style="flex:1"></div><div class="recruit-reward">+200◈</div></div>
+              <div class="recruit-row"><div class="recruit-status active"></div><div><div class="recruit-name">Divya M</div><div class="recruit-college">NIT Trichy</div></div><div style="flex:1"></div><div class="recruit-reward">+200◈</div></div>
+              <div class="recruit-row"><div class="recruit-status pending"></div><div><div class="recruit-name">Sai Kumar</div><div class="recruit-college">NIT Trichy</div></div><div style="flex:1"></div><div class="recruit-reward" style="color:var(--amber)">Pending</div></div>
+              <div class="recruit-row"><div class="recruit-status active"></div><div><div class="recruit-name">Meera G</div><div class="recruit-college">NIT Trichy</div></div><div style="flex:1"></div><div class="recruit-reward">+200◈</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== MARKETPLACE ===== -->
+      <div class="page" id="page-marketplace">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="background:rgba(255,179,71,0.12);border:1px solid rgba(255,179,71,0.3);border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:8px">
+            <span style="color:var(--amber);font-size:18px">◈</span>
+            <div>
+              <div style="font-family:var(--font-head);font-size:16px;color:var(--amber)">2,450</div>
+              <div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">AVAILABLE COINS</div>
+            </div>
+          </div>
+        </div>
+        <div class="market-grid">
+          <div class="market-card">
+            <div class="market-icon">📜</div>
+            <div class="market-name">Participation Cert</div>
+            <div class="market-desc">Official TechFest 2025 Ambassador Certificate</div>
+            <div class="market-price">◈ 200</div>
+          </div>
+          <div class="market-card">
+            <div class="market-icon">👕</div>
+            <div class="market-name">Official T-Shirt</div>
+            <div class="market-desc">Exclusive Ambassador Edition</div>
+            <div class="market-price">◈ 600</div>
+          </div>
+          <div class="market-card">
+            <div class="market-icon">🎫</div>
+            <div class="market-name">VIP Event Pass</div>
+            <div class="market-desc">All-access pass to TechFest 2025</div>
+            <div class="market-price">◈ 1,500</div>
+          </div>
+          <div class="market-card">
+            <div class="market-icon">🏆</div>
+            <div class="market-name">Excellence Badge</div>
+            <div class="market-desc">Digital + physical rare badge</div>
+            <div class="market-price">◈ 800</div>
+          </div>
+          <div class="market-card">
+            <div class="market-icon">📸</div>
+            <div class="market-name">Pro Media Kit</div>
+            <div class="market-desc">Photo pass + exclusive media access</div>
+            <div class="market-price">◈ 1,000</div>
+          </div>
+          <div class="market-card">
+            <div class="market-icon">🎓</div>
+            <div class="market-name">Letter of Rec</div>
+            <div class="market-desc">From organizing committee</div>
+            <div class="market-price">◈ 2,000</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ACHIEVEMENTS ===== -->
+      <div class="page" id="page-achievements">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-icon">🎖️</span>
+            <span class="panel-title">Your Achievements</span>
+            <div style="margin-left:auto;font-family:var(--font-hud);font-size:10px;color:var(--text3)">14 / 32 unlocked</div>
+          </div>
+          <div class="panel-body">
+            <div style="margin-bottom:4px;font-family:var(--font-hud);font-size:10px;color:var(--text3);letter-spacing:1px">COMBAT BADGES</div>
+            <div class="badge-grid" style="margin-bottom:16px">
+              <div class="badge-card"><div class="badge-icon">🎯</div><div class="badge-name">First Strike</div></div>
+              <div class="badge-card"><div class="badge-icon">🦅</div><div class="badge-name">Eagle Scout</div></div>
+              <div class="badge-card"><div class="badge-icon">⚡</div><div class="badge-name">Swift Ops</div></div>
+              <div class="badge-card"><div class="badge-icon">🔥</div><div class="badge-name">On Fire</div></div>
+              <div class="badge-card locked"><div class="badge-icon">💎</div><div class="badge-name">Diamond Tier</div></div>
+              <div class="badge-card locked"><div class="badge-icon">👑</div><div class="badge-name">Commander</div></div>
+              <div class="badge-card locked"><div class="badge-icon">🌟</div><div class="badge-name">Superstar</div></div>
+              <div class="badge-card locked"><div class="badge-icon">🚀</div><div class="badge-name">Rocketeer</div></div>
+            </div>
+            <div style="margin-bottom:4px;font-family:var(--font-hud);font-size:10px;color:var(--text3);letter-spacing:1px">RECRUITMENT BADGES</div>
+            <div class="badge-grid" style="margin-bottom:16px">
+              <div class="badge-card"><div class="badge-icon">🤝</div><div class="badge-name">First Recruit</div></div>
+              <div class="badge-card"><div class="badge-icon">👥</div><div class="badge-name">Squad Leader</div></div>
+              <div class="badge-card locked"><div class="badge-icon">🌐</div><div class="badge-name">Networker</div></div>
+              <div class="badge-card locked"><div class="badge-icon">🏗️</div><div class="badge-name">Army Builder</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== NOTIFICATIONS ===== -->
+      <div class="page" id="page-notifications">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-icon">🔔</span>
+            <span class="panel-title">Notification Center</span>
+            <div style="margin-left:auto"><button class="btn btn-sm" style="cursor:pointer">Mark All Read</button></div>
+          </div>
+          <div class="panel-body" style="padding-top:4px">
+            <div class="notif-item">
+              <div class="notif-dot-wrap"><div class="notif-dot alert"></div></div>
+              <div><div class="notif-text"><strong>MISSION NEXUS DEADLINE:</strong> Only 48 hours remaining. You need 18 more registrations.</div><div class="notif-time">10 minutes ago · URGENT</div></div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-dot-wrap"><div class="notif-dot success"></div></div>
+              <div><div class="notif-text">✅ Mission <strong>CAMPUS STORM</strong> has been verified and approved. +300 XP and ◈500 credited.</div><div class="notif-time">2 hours ago · REWARD</div></div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-dot-wrap"><div class="notif-dot info"></div></div>
+              <div><div class="notif-text">📣 <strong>New Mission:</strong> OPERATION THUNDERCLAP — ◈1200 and 750 XP available.</div><div class="notif-time">4 hours ago · NEW MISSION</div></div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-dot-wrap"><div class="notif-dot success"></div></div>
+              <div><div class="notif-text">🎖️ Badge Unlocked: <strong>EAGLE SCOUT</strong> — +300 XP bonus.</div><div class="notif-time">Yesterday · ACHIEVEMENT</div></div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-dot-wrap"><div class="notif-dot warn"></div></div>
+              <div><div class="notif-text">👥 <strong>Ananya Priya</strong> registered via your referral. ◈200 awarded!</div><div class="notif-time">Yesterday · REFERRAL</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PROFILE ===== -->
+      <div class="page" id="page-profile">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-icon">👤</span>
+                <span class="panel-title">Agent Profile</span>
+              </div>
+              <div class="panel-body">
+                <div class="profile-header">
+                  <div class="profile-avatar-wrap">
+                    <div class="profile-avatar">🎖️</div>
+                  </div>
+                  <div class="profile-info">
+                    <div class="profile-name">AXIOM-7</div>
+                    <div class="profile-title">Captain · Tier III</div>
+                    <div class="profile-tags">
+                      <span class="tag">NIT Trichy</span>
+                      <span class="tag">CSE</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="divider"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+                  <div style="color:var(--text3)">AGENT ID</div><div style="color:var(--text)">TF25-NIT-0042</div>
+                  <div style="color:var(--text3)">MISSIONS</div><div style="color:var(--neon)">18 done</div>
+                  <div style="color:var(--text3)">RECRUITS</div><div style="color:var(--neon3)">12 agents</div>
+                  <div style="color:var(--text3)">COINS EARNED</div><div style="color:var(--amber)">◈ 5,240</div>
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-icon">🏅</span>
+                <span class="panel-title">Top Badges</span>
+              </div>
+              <div class="panel-body">
+                <div style="display:flex;gap:12px;flex-wrap:wrap">
+                  <div style="text-align:center"><div style="font-size:28px">🎯</div><div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">FIRST STRIKE</div></div>
+                  <div style="text-align:center"><div style="font-size:28px">🦅</div><div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">EAGLE SCOUT</div></div>
+                  <div style="text-align:center"><div style="font-size:28px">⚡</div><div style="font-family:var(--font-hud);font-size:9px;color:var(--text3)">SWIFT OPS</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-icon">📊</span>
+                <span class="panel-title">Skills</span>
+              </div>
+              <div class="panel-body">
+                <div class="skill-row">
+                  <div class="skill-label"><span>Outreach</span><span class="skill-pct">88%</span></div>
+                  <div class="xp-bar-wrap"><div class="prog-fill" style="width:88%;background:var(--neon);height:6px;border-radius:3px"></div></div>
+                </div>
+                <div class="skill-row">
+                  <div class="skill-label"><span>Social Media</span><span class="skill-pct">72%</span></div>
+                  <div class="xp-bar-wrap"><div class="prog-fill" style="width:72%;background:var(--neon2);height:6px;border-radius:3px"></div></div>
+                </div>
+                <div class="skill-row">
+                  <div class="skill-label"><span>Event Mgmt</span><span class="skill-pct">65%</span></div>
+                  <div class="xp-bar-wrap"><div class="prog-fill" style="width:65%;background:var(--neon3);height:6px;border-radius:3px"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const pages = {
+  dashboard: 'Command Center',
+  missions: 'Mission Center',
+  leaderboard: 'Leaderboard',
+  analytics: 'Analytics',
+  referral: 'Referral Ops',
+  marketplace: 'Marketplace',
+  achievements: 'Achievements',
+  notifications: 'Notifications',
+  profile: 'Profile',
+};
+
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const target = document.getElementById('page-' + page);
+  if (target) target.classList.add('active');
+  document.getElementById('page-title').textContent = pages[page] || page;
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') === "nav('"+page+"')") n.classList.add('active');
+  });
+}
+
+function switchTab(t) {
+  ['available','active','submitted','completed'].forEach(id => {
+    const el = document.getElementById('tab-'+id);
+    if(el) el.classList.toggle('active', id === t);
+  });
+}
+
+function switchLBTab(t) {
+  ['national','college','regional'].forEach(id => {
+    const el = document.getElementById('tab-lb-'+id);
+    if(el) el.classList.toggle('active', id === t);
+  });
+}
+</script>
+</body>
+</html>
